@@ -1,12 +1,19 @@
 {
-  "dependencies": {
-    "@nestjs/bullmq": "^11.0.4",
-    "@nestjs/config": "^4.0.2",
-    "@nestjs/typeorm": "^11.0.0",
-    "bullmq": "^5.66.5",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.3",
-    "pg": "^8.17.0",
-    "typeorm": "^0.3.28"
+  "name": "fincart-monorepo",
+  "private": true,
+  "workspaces": [
+    "fincart-backend",
+    "fincart-frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run start:dev -w fincart-backend",
+    "dev:frontend": "npm run dev -w fincart-frontend",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "npm run build -w fincart-backend && npm run build -w fincart-frontend",
+    "install:all": "npm install"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }
