@@ -4,7 +4,7 @@
 
 This is a high-performance full-stack order management system for Shopify integration. Built with Next.js frontend and NestJS backend, featuring real-time socket updates, virtualized data rendering, and performance optimizations.
 
-**Repository:** https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator-frontend
+**Repository:** https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator
 
 ---
 
@@ -19,8 +19,8 @@ This is a high-performance full-stack order management system for Shopify integr
 
 ```bash
 # Clone repository
-git clone https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator-frontend.git
-cd Atomic-Order-Orchestrator-frontend
+git clone https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator.git
+cd Atomic-Order-Orchestrator
 
 # Install dependencies
 npm install
@@ -580,4 +580,4 @@ Proprietary - Atomic Order Orchestrator
 
 **Last Updated:** January 19, 2026  
 **Status:** 🟢 Production Ready  
-**Repository:** https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator-frontend
+**Repository:** https://github.com/ahmedmeddhatt/Atomic-Order-Orchestrator
