@@ -49,6 +49,59 @@ export class OrdersService {
     });
   }
 
+  async findAll(skip: number = 0, take: number = 50, sortBy: string = 'updatedAt', sortOrder: 'ASC' | 'DESC' = 'DESC'): Promise<{ data: Order[]; total: number }> {
+    // Only select necessary columns to reduce payload size
+    const [data, total] = await this.orderRepository.findAndCount({
+      select: ['id', 'shopifyOrderId', 'status', 'shippingFee', 'version', 'createdAt', 'updatedAt'],
+      order: {
+        [sortBy]: sortOrder,
+      },
+      skip,
+      take,
+    });
+    return { data, total };
+  }
+
+  async findAllWithCursor(cursor?: string, limit: number = 50): Promise<{ data: Order[]; nextCursor?: string; hasMore: boolean }> {
+    // Cursor-based pagination for optimal performance
+    // Cursor format: base64(updatedAt:id)
+    let skip = 0;
+
+    if (cursor) {
+      const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
+      const [, id] = decoded.split(':');
+      const cursorOrder = await this.orderRepository.findOne({
+        where: { id },
+        select: ['updatedAt'],
+      });
+      if (cursorOrder) {
+        // Find position of cursor in sorted order
+        const cursorIndex = await this.orderRepository.count({
+          where: { updatedAt: cursorOrder.updatedAt },
+        });
+        skip = cursorIndex;
+      }
+    }
+
+    const data = await this.orderRepository.find({
+      select: ['id', 'shopifyOrderId', 'status', 'shippingFee', 'version', 'createdAt', 'updatedAt'],
+      order: { updatedAt: 'DESC', id: 'DESC' },
+      skip,
+      take: limit + 1, // Fetch one extra to check if there are more
+    });
+
+    const hasMore = data.length > limit;
+    const result = hasMore ? data.slice(0, limit) : data;
+
+    let nextCursor: string | undefined;
+    if (hasMore && result.length > 0) {
+      const lastItem = result[result.length - 1];
+      nextCursor = Buffer.from(`${lastItem.updatedAt.toISOString()}:${lastItem.id}`).toString('base64');
+    }
+
+    return { data: result, nextCursor, hasMore };
+  }
+
   async createOrder(shopifyOrderId: string): Promise<Order> {
     const order = this.orderRepository.create({
       shopifyOrderId,

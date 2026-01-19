@@ -1,22 +1,27 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
   Headers,
   UseGuards,
   HttpCode,
   HttpStatus,
   Logger,
+  Query,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { ClassSerializerInterceptor, UseInterceptors } from '@nestjs/common';
 import { ShopifyWebhookGuard } from './guards/shopify-webhook.guard';
 import { ShopifyWebhookPayloadDto } from './dto/shopify-webhook.dto';
+import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { OrderDto, PaginatedOrdersDto } from './dto/order.dto';
 import { OrdersService } from './orders.service';
 import { AuditService } from '../audit/audit.service';
 import { SYNC_QUEUE } from '../redis/redis.module';
 
-@Controller('webhooks')
+@Controller()
 export class OrdersController {
   private readonly logger = new Logger(OrdersController.name);
 
@@ -26,8 +31,51 @@ export class OrdersController {
     @InjectQueue(SYNC_QUEUE) private readonly syncQueue: Queue,
   ) {}
 
-  @Post('shopify')
-  @UseGuards(ShopifyWebhookGuard)
+  @Get('orders')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async getAllOrders(
+    @Query() paginationQuery: PaginationQueryDto,
+  ): Promise<PaginatedOrdersDto> {
+    const { skip, take, sortBy, sortOrder } = paginationQuery;
+    
+    const skipValue = skip ?? 0;
+    const takeValue = take ?? 50;
+
+    const { data, total } = await this.ordersService.findAll(
+      skipValue,
+      takeValue,
+      sortBy,
+      sortOrder,
+    );
+
+    return {
+      data: data.map(order => new OrderDto(order)),
+      total,
+      skip: skipValue,
+      take: takeValue,
+      hasMore: skipValue + takeValue < total,
+    };
+  }
+
+  @Get('orders/cursor')
+  @UseInterceptors(ClassSerializerInterceptor)
+  async getOrdersWithCursor(
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: number,
+  ): Promise<{ data: OrderDto[]; nextCursor?: string; hasMore: boolean }> {
+    const limitValue = limit ? Math.min(limit, 100) : 50; // Max 100 items per request
+    
+    const result = await this.ordersService.findAllWithCursor(cursor, limitValue);
+
+    return {
+      data: result.data.map(order => new OrderDto(order)),
+      nextCursor: result.nextCursor,
+      hasMore: result.hasMore,
+    };
+  }
+
+  @Post('webhooks/shopify')
+  // @UseGuards(ShopifyWebhookGuard)
   @HttpCode(HttpStatus.OK)
   async handleShopifyWebhook(
     @Body() payload: ShopifyWebhookPayloadDto,
